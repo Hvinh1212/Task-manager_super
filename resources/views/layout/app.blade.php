@@ -20,22 +20,35 @@
 </head>
 
 <body class="bg-gray-100 min-h-screen">
-    <!-- Navbar -->
-    <nav class="bg-white border-b">
-        <div class="max-w-6xl mx-auto px-4">
-            <div class="flex justify-between items-center h-16">
-                <h1 class="text-xl font-bold text-primary">
-                    Notes App
-                </h1>
-                <a href="{{route('note.create')}}"
-                    class="bg-primary text-white px-4 py-2 rounded-lg hover:opacity-90 transition">
-                    New Note
-                </a>
+    @auth
+        <nav class="bg-white border-b">
+            <div class="max-w-6xl mx-auto px-4">
+                <div class="flex justify-between items-center h-16">
+                    <h1 class="text-xl font-bold text-primary">
+                        Notes App
+                    </h1>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-gray-700">
+                            {{ auth()->user()->name }} ({{ auth()->user()->role }})
+                        </span>
+                        @if (auth()->user()->role === 'admin')
+                            <a href="{{ route('note.create') }}"
+                                class="bg-primary text-white px-4 py-2 rounded-lg hover:opacity-90 transition">
+                                New Task
+                            </a>
+                        @endif
+                        <form action="{{ route('logout') }}" method="POST">
+                            @csrf
+                            <button class="px-3 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50">
+                                Logout
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
+    @endauth
 
-    <!-- Main -->
     <main class="max-w-6xl mx-auto px-4 py-8">
 
         @if (session('success'))

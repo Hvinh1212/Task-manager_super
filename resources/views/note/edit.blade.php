@@ -58,9 +58,11 @@
             </label>
             <select name="status"
                 class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
-                <option value="Not Started" @selected(old('status', $note->status) === 'Not Started')>Not Started</option>
-                <option value="In Progress" @selected(old('status', $note->status) === 'In Progress')>In Progress</option>
-                <option value="Completed" @selected(old('status', $note->status) === 'Completed')>Completed</option>
+                @foreach (\App\Models\Note::allowedStatuses() as $status)
+                    <option value="{{ $status }}" @selected(old('status', $note->status) === $status)>
+                        {{ \App\Models\Note::statusLabel($status) }}
+                    </option>
+                @endforeach
             </select>
             @error('status')
             <div class="text-red-500">{{ $message }}</div>

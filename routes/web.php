@@ -12,7 +12,7 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::get('/dashboard', [NoteController::class, 'index'])->name('note.index');
+    Route::get('/', [NoteController::class, 'index'])->name('note.index');
 
     Route::middleware('role:admin')->group(function () {
         Route::get('/create', [NoteController::class, 'create'])->name('note.create');

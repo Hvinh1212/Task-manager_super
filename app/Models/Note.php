@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Traits\HasTaskStatuses;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Note extends Model
 {
-    public const STATUS_NOT_STARTED = 'Not Started';
-    public const STATUS_IN_PROGRESS = 'In Progress';
-    public const STATUS_COMPLETED = 'Completed';
+    use HasTaskStatuses;
+
+    public const STATUS_CHUA_LAM = 'chua_lam';
+    public const STATUS_DANG_LAM = 'dang_lam';
+    public const STATUS_HOAN_THANH = 'hoan_thanh';
 
     protected $fillable = [
         'title',

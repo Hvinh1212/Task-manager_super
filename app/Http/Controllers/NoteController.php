@@ -4,12 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Note;
 use App\Models\User;
+use App\Repositories\Contracts\NoteRepositoryInterface;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class NoteController extends Controller
 {
-    private const ALLOWED_STATUSES = ['chua_lam', 'dang_lam', 'hoan_thanh'];
+    public function __construct(
+        private readonly NoteRepositoryInterface $notesRepository,
+        private readonly UserRepositoryInterface $userRepository,
+    ) {
+    }
 
     public function index(Request $request)
     {
@@ -21,26 +28,21 @@ class NoteController extends Controller
 
             if ($status === '') {
                 $request->session()->forget('task_filter_status');
-            } elseif (in_array($status, self::ALLOWED_STATUSES, true)) {
+            } elseif (in_array($status, Note::allowedStatuses(), true)) {
                 $request->session()->put('task_filter_status', $status);
             }
         }
 
         $activeStatus = $request->session()->get('task_filter_status');
 
-        $notes = Note::query()
-            ->with('assignedUser')
-            ->when($user->role === 'user', fn ($query) => $query->where('assigned_user_id', $user->id))
-            ->when(in_array($activeStatus, self::ALLOWED_STATUSES, true), fn ($query) => $query->where('status', $activeStatus))
-            ->latest()
-            ->get();
+        $notes = $this->notesRepository->paginateForViewer($user, $activeStatus, 9);
 
         return view('note.index', compact('notes', 'activeStatus'));
     }
 
     public function create()
     {
-        $users = User::where('role', 'user')->orderBy('name')->get();
+        $users = $this->userRepository->getAssignableUsers();
 
         return view('note.create', compact('users'));
     }
@@ -55,10 +57,10 @@ class NoteController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'content' => ['nullable', 'string'],
             'assigned_user_id' => ['required', 'exists:users,id'],
-            'status' => ['required', 'in:chua_lam,dang_lam,hoan_thanh'],
+            'status' => ['required', Rule::in(Note::allowedStatuses())],
         ]);
 
-        Note::create($data);
+        $this->notesRepository->create($data);
 
         return redirect()->route('note.index')->with('success', 'Task created successfully.');
     }
@@ -70,7 +72,7 @@ class NoteController extends Controller
 
         abort_if($user->role === 'user' && $note->assigned_user_id !== $user->id, 403);
 
-        $users = User::where('role', 'user')->orderBy('name')->get();
+        $users = $this->userRepository->getAssignableUsers();
 
         return view('note.edit', compact('note', 'users'));
     }
@@ -85,10 +87,10 @@ class NoteController extends Controller
                 'title' => ['required', 'string', 'max:255'],
                 'content' => ['nullable', 'string'],
                 'assigned_user_id' => ['required', 'exists:users,id'],
-                'status' => ['required', 'in:chua_lam,dang_lam,hoan_thanh'],
+                'status' => ['required', Rule::in(Note::allowedStatuses())],
             ]);
 
-            $note->update($data);
+            $this->notesRepository->update($note, $data);
 
             return redirect()->route('note.index')->with('success', 'Task updated successfully.');
         }
@@ -96,10 +98,10 @@ class NoteController extends Controller
         abort_if($note->assigned_user_id !== $user->id, 403);
 
         $data = $request->validate([
-            'status' => ['required', 'in:chua_lam,dang_lam,hoan_thanh'],
+            'status' => ['required', Rule::in(Note::allowedStatuses())],
         ]);
 
-        $note->update($data);
+        $this->notesRepository->update($note, $data);
 
         return redirect()->route('note.index')->with('success', 'Task status updated successfully.');
     }
@@ -110,7 +112,7 @@ class NoteController extends Controller
         $user = Auth::user();
         abort_if($user->role !== 'admin', 403);
 
-        $note->delete();
+        $this->notesRepository->delete($note);
 
         return redirect()->route('note.index')->with('success', 'Task deleted successfully.');
     }

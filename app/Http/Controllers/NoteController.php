@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Note;
+use App\Models\NoteLog;
 use App\Models\User;
 use App\Repositories\Contracts\NoteRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
@@ -71,8 +72,18 @@ class NoteController extends Controller
             'status' => ['required', Rule::in(Note::allowedStatuses())],
         ]);
 
-        DB::transaction(function () use ($data) {
-            $this->notesRepository->create($data);
+        DB::transaction(function () use ($data, $user) {
+            $note = $this->notesRepository->create($data);
+
+            NoteLog::create([
+                'note_id' => $note->id,
+                'actor_user_id' => $user->id,
+                'action' => 'created',
+                'meta' => [
+                    'assigned_user_id' => $note->assigned_user_id,
+                    'status' => $note->status,
+                ],
+            ]);
         });
 
         return redirect()->route('note.index')->with('success', 'Task created successfully.');
@@ -108,8 +119,19 @@ class NoteController extends Controller
                 'status' => ['required', Rule::in(Note::allowedStatuses())],
             ]);
 
-            DB::transaction(function () use ($note, $data) {
-                $this->notesRepository->update($note, $data);
+            DB::transaction(function () use ($note, $data, $user) {
+                $before = $note->only(['title', 'content', 'assigned_user_id', 'status']);
+                $updated = $this->notesRepository->update($note, $data);
+
+                NoteLog::create([
+                    'note_id' => $updated->id,
+                    'actor_user_id' => $user->id,
+                    'action' => 'updated',
+                    'meta' => [
+                        'before' => $before,
+                        'after' => $updated->only(['title', 'content', 'assigned_user_id', 'status']),
+                    ],
+                ]);
             });
 
             return redirect()->route('note.index')->with('success', 'Task updated successfully.');
@@ -121,8 +143,19 @@ class NoteController extends Controller
             'status' => ['required', Rule::in(Note::allowedStatuses())],
         ]);
 
-        DB::transaction(function () use ($note, $data) {
-            $this->notesRepository->update($note, $data);
+        DB::transaction(function () use ($note, $data, $user) {
+            $beforeStatus = $note->status;
+            $updated = $this->notesRepository->update($note, $data);
+
+            NoteLog::create([
+                'note_id' => $updated->id,
+                'actor_user_id' => $user->id,
+                'action' => 'status_updated',
+                'meta' => [
+                    'before_status' => $beforeStatus,
+                    'after_status' => $updated->status,
+                ],
+            ]);
         });
 
         return redirect()->route('note.index')->with('success', 'Task status updated successfully.');
@@ -134,7 +167,18 @@ class NoteController extends Controller
         $user = Auth::user();
         abort_if($user->role !== 'admin', 403);
 
-        DB::transaction(function () use ($note) {
+        DB::transaction(function () use ($note, $user) {
+            NoteLog::create([
+                'note_id' => $note->id,
+                'actor_user_id' => $user->id,
+                'action' => 'deleted',
+                'meta' => [
+                    'title' => $note->title,
+                    'assigned_user_id' => $note->assigned_user_id,
+                    'status' => $note->status,
+                ],
+            ]);
+
             $this->notesRepository->delete($note);
         });
 

@@ -6,7 +6,7 @@
     <h2 class="text-xl font-bold mb-6">
         {{ auth()->user()->role === 'admin' ? 'Edit Task' : 'Update Task Status' }}
     </h2>
-    <form action="{{route('note.update', $note)}}" method="POST" class="space-y-4">
+    <form id="note-edit-form" action="{{route('note.update', $note)}}" method="POST" class="space-y-4" novalidate>
         @csrf
         @method('PUT')
         @if (auth()->user()->role === 'admin')
@@ -59,9 +59,9 @@
             <select name="status"
                 class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                 @foreach (\App\Models\Note::allowedStatuses() as $status)
-                    <option value="{{ $status }}" @selected(old('status', $note->status) === $status)>
-                        {{ \App\Models\Note::statusLabel($status) }}
-                    </option>
+                <option value="{{ $status }}" @selected(old('status', $note->status) === $status)>
+                    {{ \App\Models\Note::statusLabel($status) }}
+                </option>
                 @endforeach
             </select>
             @error('status')

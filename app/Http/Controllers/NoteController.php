@@ -7,15 +7,21 @@ use App\Models\User;
 use App\Repositories\Contracts\NoteRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 class NoteController extends Controller
 {
+    private NoteRepositoryInterface $notesRepository;
+    private UserRepositoryInterface $userRepository;
+
     public function __construct(
-        private readonly NoteRepositoryInterface $notesRepository,
-        private readonly UserRepositoryInterface $userRepository,
+        NoteRepositoryInterface $notesRepository,
+        UserRepositoryInterface $userRepository
     ) {
+        $this->notesRepository = $notesRepository;
+        $this->userRepository = $userRepository;
     }
 
     public function index(Request $request)
@@ -55,12 +61,19 @@ class NoteController extends Controller
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'content' => ['nullable', 'string'],
+            'content' => [
+                'nullable',
+                'string',
+                'max:10000',
+                'regex:/^[\\pL\\pN\\s\\r\\n\\.,\\-_\\(\\)!\\?:;\'"@#$%&*\\+=\\/\\\\]*$/u',
+            ],
             'assigned_user_id' => ['required', 'exists:users,id'],
             'status' => ['required', Rule::in(Note::allowedStatuses())],
         ]);
 
-        $this->notesRepository->create($data);
+        DB::transaction(function () use ($data) {
+            $this->notesRepository->create($data);
+        });
 
         return redirect()->route('note.index')->with('success', 'Task created successfully.');
     }
@@ -85,12 +98,19 @@ class NoteController extends Controller
         if ($user->role === 'admin') {
             $data = $request->validate([
                 'title' => ['required', 'string', 'max:255'],
-                'content' => ['nullable', 'string'],
+                'content' => [
+                    'nullable',
+                    'string',
+                    'max:10000',
+                    'regex:/^[\\pL\\pN\\s\\r\\n\\.,\\-_\\(\\)!\\?:;\'"@#$%&*\\+=\\/\\\\]*$/u',
+                ],
                 'assigned_user_id' => ['required', 'exists:users,id'],
                 'status' => ['required', Rule::in(Note::allowedStatuses())],
             ]);
 
-            $this->notesRepository->update($note, $data);
+            DB::transaction(function () use ($note, $data) {
+                $this->notesRepository->update($note, $data);
+            });
 
             return redirect()->route('note.index')->with('success', 'Task updated successfully.');
         }
@@ -101,7 +121,9 @@ class NoteController extends Controller
             'status' => ['required', Rule::in(Note::allowedStatuses())],
         ]);
 
-        $this->notesRepository->update($note, $data);
+        DB::transaction(function () use ($note, $data) {
+            $this->notesRepository->update($note, $data);
+        });
 
         return redirect()->route('note.index')->with('success', 'Task status updated successfully.');
     }
@@ -112,7 +134,9 @@ class NoteController extends Controller
         $user = Auth::user();
         abort_if($user->role !== 'admin', 403);
 
-        $this->notesRepository->delete($note);
+        DB::transaction(function () use ($note) {
+            $this->notesRepository->delete($note);
+        });
 
         return redirect()->route('note.index')->with('success', 'Task deleted successfully.');
     }

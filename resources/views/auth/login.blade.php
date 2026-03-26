@@ -4,7 +4,7 @@
     <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow">
         <h2 class="text-xl font-bold mb-6">Login</h2>
 
-        <form action="{{ route('login.submit') }}" method="POST" class="space-y-4">
+        <form id="login-form" action="{{ route('login.submit') }}" method="POST" class="space-y-4" novalidate>
             @csrf
 
             <div>

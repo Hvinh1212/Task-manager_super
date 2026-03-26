@@ -7,7 +7,7 @@
         Create Task
     </h2>
 
-    <form action="{{route('note.store')}}" method="POST" class="space-y-4">
+    <form id="note-create-form" action="{{route('note.store')}}" method="POST" class="space-y-4" novalidate>
         @csrf
         <div>
             <label class="block text-sm font-medium mb-1">

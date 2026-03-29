@@ -42,9 +42,14 @@ class NoteController extends Controller
 
         $activeStatus = $request->session()->get('task_filter_status');
 
-        $notes = $this->notesRepository->paginateForViewer($user, $activeStatus, 9);
+        $search = $request->string('q')->trim()->toString();
+        if ($search === '') {
+            $search = null;
+        }
 
-        return view('note.index', compact('notes', 'activeStatus'));
+        $notes = $this->notesRepository->paginateForViewer($user, $activeStatus, $search, 9);
+
+        return view('note.index', compact('notes', 'activeStatus', 'search'));
     }
 
     public function create()

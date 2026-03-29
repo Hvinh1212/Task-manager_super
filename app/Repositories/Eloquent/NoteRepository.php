@@ -9,7 +9,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class NoteRepository implements NoteRepositoryInterface
 {
-    public function paginateForViewer(User $viewer, ?string $status, int $perPage): LengthAwarePaginator
+    public function paginateForViewer(User $viewer, ?string $status, ?string $search, int $perPage): LengthAwarePaginator
     {
         $query = Note::query()
             ->with('assignedUser')
@@ -21,6 +21,15 @@ class NoteRepository implements NoteRepositoryInterface
 
         if ($status !== null && $status !== '' && in_array($status, Note::allowedStatuses(), true)) {
             $query->where('status', $status);
+        }
+
+        $search = $search !== null ? trim($search) : '';
+        if ($search !== '') {
+            $term = '%' . $search . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('title', 'like', $term)
+                    ->orWhere('content', 'like', $term);
+            });
         }
 
         return $query->paginate($perPage);
@@ -43,4 +52,3 @@ class NoteRepository implements NoteRepositoryInterface
         $note->delete();
     }
 }
-

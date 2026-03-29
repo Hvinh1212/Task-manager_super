@@ -8,7 +8,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface NoteRepositoryInterface
 {
-    public function paginateForViewer(User $viewer, ?string $status, int $perPage): LengthAwarePaginator;
+    public function paginateForViewer(User $viewer, ?string $status, ?string $search, int $perPage): LengthAwarePaginator;
 
     public function create(array $data): Note;
 
